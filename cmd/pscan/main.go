@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"text/tabwriter"
@@ -234,6 +235,11 @@ func printResults(out io.Writer, results []portscan.ScanResult, elapsed time.Dur
 		}
 	}
 
+	orderedResults := append([]portscan.ScanResult(nil), results...)
+	sort.SliceStable(orderedResults, func(i, j int) bool {
+		return orderedResults[i].Port < orderedResults[j].Port
+	})
+
 	if open == 0 {
 		fmt.Fprintln(out, "Nenhuma porta aberta encontrada.")
 	} else {
@@ -245,7 +251,7 @@ func printResults(out io.Writer, results []portscan.ScanResult, elapsed time.Dur
 		}
 		fmt.Fprintln(table, header)
 
-		for _, result := range results {
+		for _, result := range orderedResults {
 			if result.Status != portscan.StatusOpen {
 				continue
 			}
@@ -267,6 +273,9 @@ func printResults(out io.Writer, results []portscan.ScanResult, elapsed time.Dur
 
 // cleanBanner deixa o banner em uma única linha para não quebrar o alinhamento da tabela.
 func cleanBanner(banner string) string {
+	const maxBannerLength = 120
+	const truncationSuffix = "..."
+
 	banner = strings.TrimSpace(banner)
 	if banner == "" {
 		return "-"
@@ -274,7 +283,13 @@ func cleanBanner(banner string) string {
 
 	replacer := strings.NewReplacer("\r", " ", "\n", " ", "\t", " ")
 
-	return strings.TrimSpace(replacer.Replace(banner))
+	banner = strings.TrimSpace(replacer.Replace(banner))
+	bannerRunes := []rune(banner)
+	if len(bannerRunes) <= maxBannerLength {
+		return banner
+	}
+
+	return string(bannerRunes[:maxBannerLength-len([]rune(truncationSuffix))]) + truncationSuffix
 }
 
 // statusLabel traduz uma opção booleana para o relatório.
