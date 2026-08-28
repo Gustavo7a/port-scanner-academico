@@ -58,6 +58,11 @@ func TestGrabBannerUsaServicoPadraoQuandoNaoHaResposta(t *testing.T) {
 	start := time.Now()
 	banner, err := portscan.GrabBanner(connection, 20*time.Millisecond)
 	elapsed := time.Since(start)
+
+	// Fecha a conexão como o pool faz depois da leitura, liberando o servidor
+	// de teste que está bloqueado em Read à espera do fim da conexão.
+	connection.Close()
+
 	if err != nil {
 		t.Fatalf("GrabBanner devolveu erro: %v", err)
 	}
