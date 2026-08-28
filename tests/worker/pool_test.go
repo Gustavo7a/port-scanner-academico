@@ -3,6 +3,7 @@ package worker_test
 import (
 	"errors"
 	"net"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -66,6 +67,51 @@ func TestStartScanRespeitaLimiteDeWorkers(t *testing.T) {
 	}
 	if maximum > 2 {
 		t.Fatalf("máximo de workers ativos = %d, esperado no máximo 2", maximum)
+	}
+}
+
+func TestStartScanProcessaCadaPortaUmaVez(t *testing.T) {
+	ports := []int{10, 20, 30, 40, 50, 60}
+	processed := make(map[int]int, len(ports))
+	var mutex sync.Mutex
+
+	results := worker.StartScan("127.0.0.1", ports, worker.PoolConfig{
+		NumWorkers: 3,
+		Connect: func(ip string, port int, timeout time.Duration) (net.Conn, error) {
+			mutex.Lock()
+			processed[port]++
+			mutex.Unlock()
+			return nil, errors.New("connection refused")
+		},
+	})
+
+	if len(results) != len(ports) {
+		t.Fatalf("quantidade de resultados = %d, esperado %d", len(results), len(ports))
+	}
+	for _, port := range ports {
+		if processed[port] != 1 {
+			t.Errorf("porta %d processada %d vezes, esperado 1", port, processed[port])
+		}
+	}
+}
+
+func TestStartScanComMaisWorkersReduzTempoDeProcessamento(t *testing.T) {
+	ports := []int{1, 2, 3, 4, 5, 6}
+	connect := func(ip string, port int, timeout time.Duration) (net.Conn, error) {
+		time.Sleep(20 * time.Millisecond)
+		return nil, errors.New("connection refused")
+	}
+
+	start := time.Now()
+	worker.StartScan("127.0.0.1", ports, worker.PoolConfig{NumWorkers: 1, Connect: connect})
+	serialDuration := time.Since(start)
+
+	start = time.Now()
+	worker.StartScan("127.0.0.1", ports, worker.PoolConfig{NumWorkers: len(ports), Connect: connect})
+	parallelDuration := time.Since(start)
+
+	if parallelDuration >= serialDuration/2 {
+		t.Fatalf("processamento paralelo não foi significativamente mais rápido: serial=%v, paralelo=%v", serialDuration, parallelDuration)
 	}
 }
 

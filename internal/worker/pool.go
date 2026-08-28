@@ -39,6 +39,11 @@ func StartScan(ip string, ports []int, config PoolConfig) []portscan.ScanResult 
 	}
 
 	jobs := make(chan int)
+	type scanResult struct {
+		index  int
+		result portscan.ScanResult
+	}
+	completed := make(chan scanResult)
 	var workersDone sync.WaitGroup
 	workersDone.Add(numWorkers)
 
@@ -46,16 +51,26 @@ func StartScan(ip string, ports []int, config PoolConfig) []portscan.ScanResult 
 		go func() {
 			defer workersDone.Done()
 			for index := range jobs {
-				results[index] = scanPort(dial, ip, ports[index], config.Timeout)
+				completed <- scanResult{
+					index:  index,
+					result: scanPort(dial, ip, ports[index], config.Timeout),
+				}
 			}
 		}()
 	}
 
-	for index := range ports {
-		jobs <- index
+	go func() {
+		for index := range ports {
+			jobs <- index
+		}
+		close(jobs)
+		workersDone.Wait()
+		close(completed)
+	}()
+
+	for result := range completed {
+		results[result.index] = result.result
 	}
-	close(jobs)
-	workersDone.Wait()
 
 	return results
 }
