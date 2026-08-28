@@ -11,9 +11,10 @@ import (
 
 // PoolConfig define os limites de processamento da nossa ferramenta.
 type PoolConfig struct {
-	NumWorkers int
-	Timeout    time.Duration
-	Connect    func(string, int, time.Duration) (net.Conn, error)
+	NumWorkers    int
+	Timeout       time.Duration
+	CaptureBanner bool
+	Connect       func(string, int, time.Duration) (net.Conn, error)
 }
 
 const defaultNumWorkers = 1
@@ -53,7 +54,7 @@ func StartScan(ip string, ports []int, config PoolConfig) []portscan.ScanResult 
 			for index := range jobs {
 				completed <- scanResult{
 					index:  index,
-					result: scanPort(dial, ip, ports[index], config.Timeout),
+					result: scanPort(dial, ip, ports[index], config.Timeout, config.CaptureBanner),
 				}
 			}
 		}()
@@ -75,14 +76,23 @@ func StartScan(ip string, ports []int, config PoolConfig) []portscan.ScanResult 
 	return results
 }
 
-func scanPort(dial func(string, int, time.Duration) (net.Conn, error), ip string, port int, timeout time.Duration) portscan.ScanResult {
+func scanPort(dial func(string, int, time.Duration) (net.Conn, error), ip string, port int, timeout time.Duration, captureBanner bool) portscan.ScanResult {
 	result := portscan.ScanResult{Port: port, Status: portscan.StatusClosed}
 
 	connection, err := dial(ip, port, timeout)
 	if err == nil {
+		defer connection.Close()
+
 		result.IsOpen = true
 		result.Status = portscan.StatusOpen
-		connection.Close()
+
+		// A falha na leitura do banner não invalida a porta aberta, por isso o erro é ignorado.
+		if captureBanner {
+			if banner, bannerErr := portscan.GrabBanner(connection, timeout); bannerErr == nil {
+				result.Banner = banner
+			}
+		}
+
 		return result
 	}
 
