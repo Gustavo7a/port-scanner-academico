@@ -2,7 +2,7 @@
 
 Port scanner TCP desenvolvido em Go para a disciplina de Redes de Computadores.
 
-A ferramenta realiza varredura do tipo *TCP connect*: para cada porta, tenta abrir
+A ferramenta realiza varredura do tipo _TCP connect_: para cada porta, tenta abrir
 uma conexão completa e classifica o resultado como aberta, fechada ou filtrada.
 As conexões são distribuídas entre goroutines para acelerar a varredura.
 
@@ -36,14 +36,14 @@ IPv4 antes da varredura.
 
 ### Opções
 
-| Opção | Descrição | Padrão |
-| --- | --- | --- |
-| `-target` | URL, domínio ou IP que será varrido (obrigatório) | — |
-| `-ports` | Portas a varrer: `80`, `20-25` ou `22,80,8000-8010` | 34 portas comuns |
-| `-workers` | Quantidade de conexões simultâneas | `100` |
-| `-timeout` | Tempo máximo de espera por porta (`500ms`, `2s`, `1m`) | `2s` |
-| `-banner` | Tenta ler o banner das portas abertas | desativado |
-| `-h` | Exibe a ajuda de utilização | — |
+| Opção      | Descrição                                              | Padrão           |
+| ---------- | ------------------------------------------------------ | ---------------- |
+| `-target`  | URL, domínio ou IP que será varrido (obrigatório)      | —                |
+| `-ports`   | Portas a varrer: `80`, `20-25` ou `22,80,8000-8010`    | 34 portas comuns |
+| `-workers` | Quantidade de conexões simultâneas                     | `100`            |
+| `-timeout` | Tempo máximo de espera por porta (`500ms`, `2s`, `1m`) | `2s`             |
+| `-banner`  | Tenta ler o banner das portas abertas                  | desativado       |
+| `-h`       | Exibe a ajuda de utilização                            | —                |
 
 ### Exemplos
 
@@ -94,14 +94,16 @@ Tempo total: 3ms
 ```
 
 Apenas as portas abertas aparecem na tabela; as demais entram na contagem do resumo.
-A coluna `BANNER` só é exibida quando a opção `-banner` está ativa.
+A tabela é ordenada pelo número da porta, e banners longos são limitados a 120
+caracteres para preservar a legibilidade. A coluna `BANNER` só é exibida quando
+a opção `-banner` está ativa.
 
 ### Códigos de saída
 
-| Código | Situação |
-| --- | --- |
-| `0` | Varredura concluída, ou ajuda exibida |
-| `1` | Parâmetro inválido, alvo não resolvido ou erro de execução |
+| Código | Situação                                                   |
+| ------ | ---------------------------------------------------------- |
+| `0`    | Varredura concluída, ou ajuda exibida                      |
+| `1`    | Parâmetro inválido, alvo não resolvido ou erro de execução |
 
 ## Testes
 
