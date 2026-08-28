@@ -8,6 +8,7 @@ import (
 	"os"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -29,6 +30,16 @@ const (
 	defaultTimeout = 2 * time.Second
 )
 
+// Descrição de cada opção. Ficam em constantes porque são usadas duas vezes:
+// no registro da flag longa e no registro do atalho de uma letra.
+const (
+	usageTarget  = "URL, domínio ou IP que será varrido (obrigatório)"
+	usagePorts   = "portas a varrer: \"80\", \"20-25\" ou \"22,80,8000-8010\" (padrão: portas comuns)"
+	usageWorkers = "quantidade de conexões simultâneas"
+	usageTimeout = "tempo máximo de espera por porta (ex: 500ms, 2s)"
+	usageBanner  = "tenta ler o banner das portas abertas"
+)
+
 var logo = []string{
 	" ____   ____",
 	"|  _ \\ / ___|   ___    __ _  _ __",
@@ -37,9 +48,28 @@ var logo = []string{
 	"|_|    |____/  \\___|  \\__,_||_| |_|",
 }
 
+// optionUsage descreve uma opção no texto de ajuda, reunindo o atalho de uma
+// letra e a forma longa em uma única linha.
+type optionUsage struct {
+	short        string
+	long         string
+	valueType    string
+	description  string
+	defaultValue string
+}
+
+var optionsUsage = []optionUsage{
+	{"-t", "--target", "string", usageTarget, ""},
+	{"-p", "--ports", "string", usagePorts, ""},
+	{"-w", "--workers", "int", usageWorkers, strconv.Itoa(defaultWorkers)},
+	{"-T", "--timeout", "duration", usageTimeout, defaultTimeout.String()},
+	{"-b", "--banner", "", usageBanner, ""},
+	{"-h", "--help", "", "exibe esta ajuda", ""},
+}
+
 // Erros de uso da linha de comando.
 var (
-	ErrMissingTarget  = errors.New("informe o alvo com -target")
+	ErrMissingTarget  = errors.New("informe o alvo com -t ou --target")
 	ErrInvalidWorkers = errors.New("a quantidade de workers deve ser maior que zero")
 	ErrInvalidTimeout = errors.New("o timeout deve ser maior que zero")
 )
@@ -68,13 +98,20 @@ func run(args []string, out io.Writer) error {
 	flags := flag.NewFlagSet(appName, flag.ContinueOnError)
 	flags.SetOutput(out)
 
+	// Cada opção é registrada duas vezes, na forma longa e no atalho de uma letra,
+	// apontando para o mesmo campo. As duas grafias preenchem o mesmo valor.
 	var opts options
-	flags.StringVar(&opts.target, "target", "", "URL, domínio ou IP que será varrido (obrigatório)")
-	flags.StringVar(&opts.ports, "ports", "", "portas a varrer: \"80\", \"20-25\" ou \"22,80,8000-8010\" (padrão: portas comuns)")
-	flags.IntVar(&opts.workers, "workers", defaultWorkers, "quantidade de conexões simultâneas")
-	flags.DurationVar(&opts.timeout, "timeout", defaultTimeout, "tempo máximo de espera por porta (ex: 500ms, 2s)")
-	flags.BoolVar(&opts.banner, "banner", false, "tenta ler o banner das portas abertas")
-	flags.Usage = func() { printUsage(out, flags) }
+	flags.StringVar(&opts.target, "target", "", usageTarget)
+	flags.StringVar(&opts.target, "t", "", usageTarget)
+	flags.StringVar(&opts.ports, "ports", "", usagePorts)
+	flags.StringVar(&opts.ports, "p", "", usagePorts)
+	flags.IntVar(&opts.workers, "workers", defaultWorkers, usageWorkers)
+	flags.IntVar(&opts.workers, "w", defaultWorkers, usageWorkers)
+	flags.DurationVar(&opts.timeout, "timeout", defaultTimeout, usageTimeout)
+	flags.DurationVar(&opts.timeout, "T", defaultTimeout, usageTimeout)
+	flags.BoolVar(&opts.banner, "banner", false, usageBanner)
+	flags.BoolVar(&opts.banner, "b", false, usageBanner)
+	flags.Usage = func() { printUsage(out) }
 
 	if err := flags.Parse(args); err != nil {
 		// -h e -help não são falhas: o texto de ajuda já foi impresso.
@@ -151,17 +188,29 @@ func commandName() string {
 	return "./" + appName
 }
 
-// printUsage descreve o funcionamento da ferramenta.
-func printUsage(out io.Writer, flags *flag.FlagSet) {
+// printUsage descreve o funcionamento da ferramenta. A listagem é montada à mão
+// em vez de usar flags.PrintDefaults porque o pacote flag imprimiria o atalho e a
+// forma longa como se fossem duas opções diferentes.
+func printUsage(out io.Writer) {
 	command := commandName()
 
-	fmt.Fprintf(out, "Uso:\n  %s -target <alvo> [opções]\n", command)
+	fmt.Fprintf(out, "Uso:\n  %s --target <alvo> [opções]\n", command)
+
 	fmt.Fprintln(out, "\nOpções:")
-	flags.PrintDefaults()
+	table := tabwriter.NewWriter(out, 0, 0, 3, ' ', 0)
+	for _, option := range optionsUsage {
+		description := option.description
+		if option.defaultValue != "" {
+			description = fmt.Sprintf("%s (padrão: %s)", description, option.defaultValue)
+		}
+		fmt.Fprintf(table, "  %s, %s\t%s\t%s\n", option.short, option.long, option.valueType, description)
+	}
+	table.Flush()
+
 	fmt.Fprintln(out, "\nExemplos:")
-	fmt.Fprintf(out, "  %s -target scanme.nmap.org\n", command)
-	fmt.Fprintf(out, "  %s -target 192.168.0.1 -ports 22,80,8000-8010\n", command)
-	fmt.Fprintf(out, "  %s -target https://exemplo.com -ports 1-1024 -workers 200 -timeout 500ms -banner\n", command)
+	fmt.Fprintf(out, "  %s --target scanme.nmap.org\n", command)
+	fmt.Fprintf(out, "  %s -t 192.168.0.1 -p 22,80,8000-8010\n", command)
+	fmt.Fprintf(out, "  %s --target https://exemplo.com --ports 1-1024 --workers 200 --timeout 500ms --banner\n", command)
 }
 
 // printHeader mostra o que será varrido, incluindo o IP resolvido a partir do alvo.

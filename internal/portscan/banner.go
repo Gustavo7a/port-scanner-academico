@@ -21,7 +21,6 @@ func GrabBanner(conn net.Conn, timeout time.Duration) (string, error) {
 	if conn == nil {
 		return UnknownService, nil
 	}
-	defer conn.Close()
 
 	port := remotePort(conn)
 
