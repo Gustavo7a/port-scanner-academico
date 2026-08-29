@@ -1,0 +1,39 @@
+services:
+  http:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    networks:
+      - port-scanner-lab
+
+  ssh:
+    image: lscr.io/linuxserver/openssh-server:latest
+    environment:
+      - USER_NAME=scanner
+      - USER_PASSWORD=lab-password
+      - PASSWORD_ACCESS=true
+      - SUDO_ACCESS=false
+    ports:
+      - "2222:2222"
+    networks:
+      - port-scanner-lab
+
+  postgres:
+    image: postgres:alpine
+    environment:
+      POSTGRES_PASSWORD: lab-password
+    ports:
+      - "5432:5432"
+    networks:
+      - port-scanner-lab
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - port-scanner-lab
+
+networks:
+  port-scanner-lab:
+    name: port-scanner-lab

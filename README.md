@@ -9,6 +9,40 @@ As conexões são distribuídas entre goroutines para acelerar a varredura.
 ## Requisitos
 
 - Go 1.26 ou superior
+- Docker com Compose
+
+## Laboratório Docker local
+
+O laboratório fornece serviços locais e controlados para validar a varredura TCP
+do scanner. Todos os containers compartilham a rede `port-scanner-lab`, e as
+portas são publicadas no host local para que o alvo da varredura seja
+`127.0.0.1`.
+
+Para iniciar todo o laboratório em segundo plano, execute um único comando na
+raiz do projeto:
+
+```bash
+docker-compose up -d
+```
+
+| Serviço    | Imagem utilizada                            | Porta exposta no host |
+| ---------- | ------------------------------------------- | --------------------- |
+| HTTP       | `nginx:alpine`                              | `80`                  |
+| SSH        | `lscr.io/linuxserver/openssh-server:latest` | `2222`                |
+| PostgreSQL | `postgres:alpine`                           | `5432`                |
+| Redis      | `redis:alpine`                              | `6379`                |
+
+Por exemplo, para verificar as portas abertas pelo laboratório:
+
+```bash
+go run ./cmd/pscan -target 127.0.0.1 -ports 80,2222,5432,6379
+```
+
+Para finalizar o laboratório e remover os containers:
+
+```bash
+docker-compose down
+```
 
 ## Compilação
 

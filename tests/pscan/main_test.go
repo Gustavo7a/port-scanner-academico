@@ -1,4 +1,4 @@
-package main
+package pscan_test
 
 import (
 	"bytes"
@@ -8,6 +8,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/joaofamello/port-scanner-academico/internal/portscan"
+	"github.com/joaofamello/port-scanner-academico/internal/pscan"
 )
 
 func TestPrintResultsOrdenaPortasAbertasEExibeResumo(t *testing.T) {
@@ -20,7 +21,7 @@ func TestPrintResultsOrdenaPortasAbertasEExibeResumo(t *testing.T) {
 	originalFirstPort := results[0].Port
 	var output bytes.Buffer
 
-	printResults(&output, results, 1250*time.Millisecond, true)
+	pscan.PrintResults(&output, results, 1250*time.Millisecond, true)
 
 	text := output.String()
 	firstOpen := strings.Index(text, "80")
@@ -38,14 +39,14 @@ func TestPrintResultsOrdenaPortasAbertasEExibeResumo(t *testing.T) {
 		t.Fatalf("duração ausente ou incorreta: %q", text)
 	}
 	if results[0].Port != originalFirstPort {
-		t.Fatalf("printResults modificou a ordem recebida: %+v", results)
+		t.Fatalf("PrintResults modificou a ordem recebida: %+v", results)
 	}
 }
 
 func TestCleanBannerNormalizaETunca(t *testing.T) {
 	banner := "  linha inicial\r\nlinha intermediária\t" + strings.Repeat("x", 130) + "  "
 
-	cleaned := cleanBanner(banner)
+	cleaned := pscan.CleanBanner(banner)
 
 	if utf8.RuneCountInString(cleaned) != 120 {
 		t.Fatalf("tamanho do banner = %d, esperado 120: %q", utf8.RuneCountInString(cleaned), cleaned)
@@ -65,7 +66,7 @@ func TestPrintResultsSemPortasAbertasMantemResumo(t *testing.T) {
 	}
 	var output bytes.Buffer
 
-	printResults(&output, results, 2*time.Millisecond, false)
+	pscan.PrintResults(&output, results, 2*time.Millisecond, false)
 
 	text := output.String()
 	if !strings.Contains(text, "Nenhuma porta aberta encontrada.") {

@@ -1,4 +1,4 @@
-package main
+package pscan_test
 
 import (
 	"bytes"
@@ -11,13 +11,14 @@ import (
 
 	"github.com/joaofamello/port-scanner-academico/internal/parser"
 	"github.com/joaofamello/port-scanner-academico/internal/portscan"
+	"github.com/joaofamello/port-scanner-academico/internal/pscan"
 )
 
 func TestRunExibeAjudaSemErro(t *testing.T) {
 	var output bytes.Buffer
 
-	if err := run([]string{"-h", "--help"}, &output); err != nil {
-		t.Fatalf("run com -h/--help retornou erro: %v", err)
+	if err := pscan.Run([]string{"-h", "--help"}, &output); err != nil {
+		t.Fatalf("Run com -h/--help retornou erro: %v", err)
 	}
 
 	text := output.String()
@@ -34,10 +35,10 @@ func TestRunRejeitaParametrosInvalidos(t *testing.T) {
 		args    []string
 		wantErr error
 	}{
-		{"sem alvo", []string{"-p", "80"}, ErrMissingTarget},
-		{"workers zero", []string{"-t", "127.0.0.1", "-w", "0"}, ErrInvalidWorkers},
-		{"workers negativo", []string{"-t", "127.0.0.1", "-w", "-3"}, ErrInvalidWorkers},
-		{"timeout zero", []string{"-t", "127.0.0.1", "-T", "0s"}, ErrInvalidTimeout},
+		{"sem alvo", []string{"-p", "80"}, pscan.ErrMissingTarget},
+		{"workers zero", []string{"-t", "127.0.0.1", "-w", "0"}, pscan.ErrInvalidWorkers},
+		{"workers negativo", []string{"-t", "127.0.0.1", "-w", "-3"}, pscan.ErrInvalidWorkers},
+		{"timeout zero", []string{"-t", "127.0.0.1", "-T", "0s"}, pscan.ErrInvalidTimeout},
 		{"porta fora do intervalo", []string{"-t", "127.0.0.1", "-p", "70000"}, parser.ErrInvalidPort},
 		{"intervalo invertido", []string{"-t", "127.0.0.1", "-p", "90-80"}, parser.ErrInvalidRange},
 	}
@@ -45,16 +46,15 @@ func TestRunRejeitaParametrosInvalidos(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var output bytes.Buffer
-
-			err := run(tt.args, &output)
+			err := pscan.Run(tt.args, &output)
 			if err == nil {
-				t.Fatalf("run(%v) não devolveu erro", tt.args)
+				t.Fatalf("Run(%v) não devolveu erro", tt.args)
 			}
 			if !errors.Is(err, tt.wantErr) {
-				t.Errorf("run(%v) devolveu %v, esperava %v", tt.args, err, tt.wantErr)
+				t.Errorf("Run(%v) devolveu %v, esperava %v", tt.args, err, tt.wantErr)
 			}
 			if !strings.Contains(output.String(), "Uso:") {
-				t.Error("run deveria imprimir a ajuda quando os parâmetros estão errados")
+				t.Error("Run deveria imprimir a ajuda quando os parâmetros estão errados")
 			}
 		})
 	}
@@ -62,7 +62,6 @@ func TestRunRejeitaParametrosInvalidos(t *testing.T) {
 
 func TestRunAceitaFormaCurtaELonga(t *testing.T) {
 	port := strconv.Itoa(portaFechada(t))
-
 	tests := map[string][]string{
 		"forma curta": {"-t", "127.0.0.1", "-p", port, "-w", "3", "-T", "200ms"},
 		"forma longa": {"--target", "127.0.0.1", "--ports", port, "--workers", "3", "--timeout", "200ms"},
@@ -71,9 +70,8 @@ func TestRunAceitaFormaCurtaELonga(t *testing.T) {
 	for name, args := range tests {
 		t.Run(name, func(t *testing.T) {
 			var output bytes.Buffer
-
-			if err := run(args, &output); err != nil {
-				t.Fatalf("run(%v) devolveu erro: %v", args, err)
+			if err := pscan.Run(args, &output); err != nil {
+				t.Fatalf("Run(%v) devolveu erro: %v", args, err)
 			}
 			if !strings.Contains(output.String(), "Workers: 3 | Timeout: 200ms") {
 				t.Fatalf("cabeçalho não refletiu as opções: %q", output.String())
@@ -84,11 +82,9 @@ func TestRunAceitaFormaCurtaELonga(t *testing.T) {
 
 func TestRunUsaPortasPadraoQuandoOpcaoAusente(t *testing.T) {
 	var output bytes.Buffer
-
-	if err := run([]string{"-t", "127.0.0.1", "-T", "200ms"}, &output); err != nil {
-		t.Fatalf("run devolveu erro: %v", err)
+	if err := pscan.Run([]string{"-t", "127.0.0.1", "-T", "200ms"}, &output); err != nil {
+		t.Fatalf("Run devolveu erro: %v", err)
 	}
-
 	expected := fmt.Sprintf("Portas:  %d", len(portscan.DefaultPorts()))
 	if !strings.Contains(output.String(), expected) {
 		t.Fatalf("cabeçalho não informa as portas padrão: %q", output.String())
@@ -97,12 +93,10 @@ func TestRunUsaPortasPadraoQuandoOpcaoAusente(t *testing.T) {
 
 func TestRunExibeIPResolvidoETempoTotal(t *testing.T) {
 	var output bytes.Buffer
-
 	args := []string{"-t", "127.0.0.1", "-p", strconv.Itoa(portaFechada(t)), "-T", "200ms"}
-	if err := run(args, &output); err != nil {
-		t.Fatalf("run devolveu erro: %v", err)
+	if err := pscan.Run(args, &output); err != nil {
+		t.Fatalf("Run devolveu erro: %v", err)
 	}
-
 	text := output.String()
 	if !strings.Contains(text, "IP:      127.0.0.1") {
 		t.Errorf("saída não mostra o IP resolvido: %q", text)
@@ -112,17 +106,13 @@ func TestRunExibeIPResolvidoETempoTotal(t *testing.T) {
 	}
 }
 
-// portaFechada devolve uma porta local que ninguém está escutando, para que a
-// varredura de teste não dependa de nenhum serviço externo.
 func portaFechada(t *testing.T) int {
 	t.Helper()
-
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("não foi possível reservar a porta: %v", err)
 	}
 	port := listener.Addr().(*net.TCPAddr).Port
 	listener.Close()
-
 	return port
 }
