@@ -70,14 +70,14 @@ IPv4 antes da varredura.
 
 ### Opções
 
-| Opção      | Descrição                                              | Padrão           |
-| ---------- | ------------------------------------------------------ | ---------------- |
-| `-target`  | URL, domínio ou IP que será varrido (obrigatório)      | —                |
-| `-ports`   | Portas a varrer: `80`, `20-25` ou `22,80,8000-8010`    | 34 portas comuns |
-| `-workers` | Quantidade de conexões simultâneas                     | `100`            |
-| `-timeout` | Tempo máximo de espera por porta (`500ms`, `2s`, `1m`) | `2s`             |
-| `-banner`  | Tenta ler o banner das portas abertas                  | desativado       |
-| `-h`       | Exibe a ajuda de utilização                            | —                |
+| Opção             | Descrição                                              | Padrão           |
+| ----------------- | ------------------------------------------------------ | ---------------- |
+| `-t`, `--target`  | URL, domínio ou IP que será varrido (obrigatório)      | —                |
+| `-p`, `--ports`   | Portas a varrer: `80`, `20-25` ou `22,80,8000-8010`    | 34 portas comuns |
+| `-w`, `--workers` | Quantidade de conexões simultâneas                     | `100`            |
+| `-T`, `--timeout` | Tempo máximo de espera por porta (`500ms`, `2s`, `1m`) | `2s`             |
+| `-b`, `--banner`  | Tenta ler o banner das portas abertas                  | desativado       |
+| `-h`, `--help`    | Exibe a ajuda de utilização                            | —                |
 
 ### Exemplos
 
