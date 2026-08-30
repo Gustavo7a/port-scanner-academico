@@ -146,6 +146,13 @@ go test ./...
 go vet ./...
 ```
 
+## Comparação com o Nmap
+
+O documento [docs/comparacao-nmap.md](docs/comparacao-nmap.md) registra uma
+comparação prática entre o PScan e o Nmap: portas encontradas, tempo de
+varredura, identificação de serviço e o efeito dos parâmetros de workers e
+timeout.
+
 ## Aviso
 
 Varredura de portas em máquinas de terceiros sem autorização expressa pode ser
